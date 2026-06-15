@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Tell mobile OS to respect our custom colors and NOT force a pure black overlay -->
+    <meta name="color-scheme" content="light dark">
+    
+    <!-- Theme Color for Mobile Browsers -->
+    <meta id="theme-color-meta" name="theme-color" content="#121212">
+    
+    <!-- App Mode capabilities for iOS/Android -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+    <title>SAURAV.DEV</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js for 3D Background -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        carbon: 'rgb(var(--color-carbon) / <alpha-value>)',
+                        rosy: 'rgb(var(--color-rosy) / <alpha-value>)',
+                        bone: 'rgb(var(--color-bone) / <alpha-value>)',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            /* Light Theme (Day): White, Baby Pink, Carbon Black */
+            --color-carbon: 255 255 255; 
+            --color-bone: 28 28 28;      
+            --color-rosy: 255 182 193;   
+            
+            --bg-main: #ffffff;
+            --text-main: #1c1c1c;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-card: rgba(28, 28, 28, 0.05);
+            --glass-border: rgba(28, 28, 28, 0.15);
+            --autofill-bg: #ffffff;
+        }
+
+        .dark {
+            /* Dark Theme (Night): AMOLED Black, Rosy Copper, Bone */
+            --color-carbon: 0 0 0;       
+            --color-bone: 222 211 192;   
+            --color-rosy: 187 85 58;     
+            
+            --bg-main: #000000;
+            --text-main: #ded3c0;
+            --glass-bg: rgba(0, 0, 0, 0.7);
+            --glass-card: rgba(222, 211, 192, 0.03);
+            --glass-border: rgba(222, 211, 192, 0.1);
+            --autofill-bg: #000000;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Lock scrolling while splash screen is active */
+        body.locked {
+            overflow: hidden !important;
+        }
+
+        /* 3D Canvas Background */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* =========================================
+           iOS LIQUID GLASS UTILITIES
+           ========================================= */
+        
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px) saturate(200%);
+            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .glass-card {
+            background: var(--glass-card);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid var(--glass-border);
+            /* Crisp top inner shadow for glass thickness */
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 10px 40px rgba(0, 0, 0, 0.2);
+            border-radius: 1.5rem;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            border-color: rgba(var(--color-rosy) / 0.5);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 15px 40px rgba(var(--color-rosy) / 0.15);
+        }
+
+        /* The iOS Juggling/Bounce Tap Effect */
+        .ios-tap {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease, background-color 0.3s ease, box-shadow 0.3s ease !important;
+            will-change: transform;
+            display: inline-flex;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .ios-tap:active {
+            transform: scale(0.88) !important;
+            opacity: 0.7;
+            /* Snappy press down */
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.1s ease !important;
+        }
+
+        /* Clear Frosted Glass Button */
+        .ios-glass-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-radius: 9999px; /* Pill shape */
+        }
+        .dark .ios-glass-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Colored Primary Frosted Glass Button */
+        .ios-primary-btn {
+            background: rgba(var(--color-rosy) / 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 8px 25px rgba(var(--color-rosy) / 0.4);
+            color: #ffffff;
+            border-radius: 9999px;
+        }
+
+        /* Text Inputs inside Form */
+        .ios-glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 1rem;
+            color: var(--text-main);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .ios-glass-input:focus {
+            outline: none;
+            border-color: rgba(var(--color-rosy) / 0.8);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1), 0 0 0 4px rgba(var(--color-rosy) / 0.2);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-main); }
+        ::-webkit-scrollbar-thumb { background: rgba(var(--color-rosy)/0.8); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(var(--color-rosy)/1); }
+
+        /* AI Loader Animation */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .ai-loader { animation: spin 1s linear infinite; display: inline-block; }
+
+        /* Magical Light Trail Animations */
+        @keyframes pulse-trail {
+            0% { transform: scaleY(0.9) translateY(0); opacity: 0.8; }
+            100% { transform: scaleY(1.1) translateY(2px); opacity: 1; }
+        }
+        .animate-pulse-trail { animation: pulse-trail 0.8s ease-in-out infinite alternate; }
+
+        /* Visibility States for Scrolling */
+        .flying #rocket-exhaust-fire { opacity: 1; transition-duration: 200ms; }
+        #rocket-exhaust-fire { transition: opacity 800ms ease; opacity: 0; }
+
+        /* Fade Animations */
+        @keyframes fadeInOut {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Splash Screen Animations */
+        @keyframes splashUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-splash-up {
+            animation: splashUp 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Hero Trigger Animations */
+        .play-hero-animations .hero-anim:nth-child(1) { animation: fadeInOut 1s ease forwards 0.2s; }
+        .play-hero-animations .hero-anim:nth-child(2) { animation: fadeInOut 1s ease forwards 0.4s; }
+        .play-hero-animations .hero-anim:nth-child(3) { animation: fadeInOut 1s ease forwards 0.6s; }
+        .play-hero-animations .hero-anim:nth-child(4) { animation: fadeInOut 1s ease forwards 0.8s; }
+
+        /* =========================================
+           MAGIC BUTTON & FOGGY REVEAL ANIMATIONS
+           ========================================= */
+        @keyframes shimmer-bg {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        
+        .magic-btn-text {
+            background: linear-gradient(90deg, #bb553a, #ffb6c1, #ffffff, #ffb6c1, #bb553a);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shimmer-bg 3s linear infinite;
+        }
+
+        @keyframes text-fog {
+            0% { 
+                color: transparent; 
+                text-shadow: 0 0 25px rgb(var(--color-rosy)), 0 0 10px rgb(var(--color-bone)); 
+            }
+            100% { 
+                color: var(--text-main); 
+                text-shadow: 0 0 0 transparent; 
+            }
+        }
+        
+        .foggy-text {
+            animation: text-fog 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* =========================================
+           EXPENSIVE MAGICAL RESTORE PORTRAIT FX
+           ========================================= */
+        .dark-memory-img {
+            filter: grayscale(75%) brightness(55%) sepia(20%) hue-rotate(-10deg);
+            transition: all 0.7s ease;
+        }
+        
+        .group:hover .dark-memory-img {
+            filter: grayscale(30%) brightness(85%) sepia(10%);
+        }
+
+        @keyframes magicalRestore {
+            0% { 
+                filter: blur(30px) brightness(200%) contrast(150%) sepia(50%) hue-rotate(-20deg); 
+                opacity: 0; 
+                transform: scale(1.15); 
+            }
+            50% { 
+                filter: blur(10px) brightness(130%) drop-shadow(0 0 40px rgb(var(--color-rosy))); 
+                opacity: 0.8; 
+                transform: scale(0.98); 
+            }
+            100% { 
+                filter: grayscale(75%) brightness(55%) sepia(20%) hue-rotate(-10deg); 
+                opacity: 1; 
+                transform: scale(1); 
+            }
+        }
+        .magical-restore {
+            animation: magicalRestore 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* =========================================
+           DYNAMIC ISLAND PROJECT PILLS
+           ========================================= */
+        .dynamic-island {
+            background: rgb(var(--color-bone) / 0.08);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            border: 1px solid rgba(var(--color-bone) / 0.15);
+            border-radius: 999px;
+            overflow: hidden;
+            transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1); /* Snappy expansion */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: fit-content;
+            min-width: 250px;
+            max-width: 100%;
+            margin: 0 auto;
+            cursor: pointer;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1), 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            transform-origin: center;
+        }
+        
+        .dark .dynamic-island {
+            background: rgb(0 0 0 / 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .dynamic-island.expanded {
+            border-radius: 2rem;
+            width: 100%;
+            max-width: 450px;
+            border-color: rgba(var(--color-rosy) / 0.5);
+            background: rgb(var(--color-bone) / 0.15);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 20px 50px rgba(var(--color-rosy) / 0.15);
+        }
+        .dark .dynamic-island.expanded {
+            background: rgb(0 0 0 / 0.85);
+        }
+
+        /* A slight glow behind the expanded island */
+        .dynamic-island::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: inherit;
+            background: linear-gradient(135deg, rgba(var(--color-rosy)/0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .dynamic-island.expanded::before {
+            opacity: 1;
+        }
+
+        .island-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1.25rem 2rem;
+            width: 100%;
+            transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        
+        .dynamic-island.expanded .island-header {
+            padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+            justify-content: flex-start;
+        }
+
+        .island-content {
+            position: relative;
+            z-index: 1;
+            max-height: 0;
+            opacity: 0;
+            padding: 0 1.5rem;
+            transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            transform: translateY(-10px) scale(0.98);
+            width: 100%;
+            text-align: left;
+            visibility: hidden;
+        }
+
+        .dynamic-island.expanded .island-content {
+            max-height: 250px;
+            opacity: 1;
+            visibility: visible;
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            transform: translateY(0) scale(1);
+            transition-delay: 0.1s;
+        }
+
+        .island-tap-hint {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.4;
+            position: absolute;
+            bottom: 0.4rem;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.3s;
+            white-space: nowrap;
+        }
+        .dynamic-island.expanded .island-tap-hint {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body class="antialiased font-sans selection:bg-rosy selection:text-white relative locked">
+
+    <!-- ============================================== -->
+    <!-- SPLASH SCREEN / ENTER PAGE (Z-INDEX: 10000) -->
+    <!-- ============================================== -->
+    <div id="splash-screen" class="fixed inset-0 z-[10000] bg-carbon/80 backdrop-blur-[40px] flex flex-col items-center justify-center transition-transform duration-[1.2s] ease-[cubic-bezier(0.77,0,0.175,1)]">
+        
+        <!-- Glowing decorative background behind text -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-rosy/30 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col items-center text-center px-6">
+            <h1 class="text-5xl md:text-8xl font-extrabold text-bone mb-6 opacity-0 translate-y-10 animate-splash-up" style="animation-delay: 0.2s;">
+                Hi. I'm <span class="text-transparent bg-clip-text bg-gradient-to-r from-rosy to-white">Saurav.</span>
+            </h1>
+            <p class="text-bone/70 text-lg md:text-2xl font-medium mb-12 opacity-0 translate-y-10 animate-splash-up tracking-wide" style="animation-delay: 0.4s;">
+                Welcome to my digital universe.
+            </p>
+            <button id="enter-btn" class="opacity-0 translate-y-10 animate-splash-up ios-tap ios-primary-btn px-10 py-5 text-lg font-bold flex items-center gap-3 shadow-[0_0_40px_rgba(var(--color-rosy)/0.4)]" style="animation-delay: 0.6s;">
+                Enter Experience <i class="fas fa-rocket ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scroll Progress Bar -->
+    <div class="fixed top-0 left-0 w-full h-1 z-[60] bg-carbon/30">
+        <div id="scroll-progress" class="h-full bg-rosy w-0 shadow-[0_0_10px_rgb(var(--color-rosy)/0.8)]"></div>
+    </div>
+
+    <!-- 3D Background Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Header / Navigation -->
+    <header class="fixed w-full top-0 z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex-shrink-0">
+                    <a href="#home" class="ios-tap flex items-center gap-3 group">
+                        <img src="image.jpg" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-bone/20 group-hover:border-rosy transition-colors" onerror="this.onerror=null; this.src='https://placehold.co/100x100/1c1c1c/ded3c0?text=S';"/>
+                        <span class="text-2xl font-bold tracking-tighter text-bone group-hover:text-rosy transition-colors">
+                            SAURAV<span class="text-rosy">.DEV</span>
+                        </span>
+                    </a>
+                </div>
+                <nav class="hidden md:block">
+                    <ul class="flex items-center space-x-8">
+                        <li><a href="#home" class="ios-tap text-sm font-semibold hover:text-rosy">Home</a></li>
+                        <li><a href="#about" class="ios-tap text-sm font-semibold hover:text-rosy">About</a></li>
+                        <li><a href="#profile" class="ios-tap text-sm font-semibold hover:text-rosy">Profile</a></li>
+                        <li><a href="#work" class="ios-tap text-sm font-semibold hover:text-rosy">Work</a></li>
+                        <li><a href="#contact" class="ios-tap text-sm font-semibold hover:text-rosy">Contact</a></li>
+                        <li>
+                            <button id="theme-toggle-desktop" class="ios-tap w-10 h-10 ios-glass-btn flex items-center justify-center text-bone hover:text-rosy focus:outline-none ml-4" title="Toggle Theme">
+                                <i class="fas fa-sun text-lg" id="theme-icon-desktop"></i>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="md:hidden flex items-center gap-6">
+                    <button id="theme-toggle-mobile" class="ios-tap w-10 h-10 ios-glass-btn flex items-center justify-center text-bone hover:text-rosy focus:outline-none">
+                        <i class="fas fa-sun text-lg" id="theme-icon-mobile"></i>
+                    </button>
+                    <button id="mobile-menu-btn" class="ios-tap w-10 h-10 ios-glass-btn flex items-center justify-center text-bone hover:text-rosy focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-carbon/90 backdrop-blur-xl border-b border-bone/10">
+            <ul class="px-2 pt-2 pb-3 space-y-2 sm:px-3">
+                <li><a href="#home" class="ios-tap block px-3 py-2 rounded-xl text-base font-medium hover:bg-rosy/20 hover:text-rosy w-full text-left">Home</a></li>
+                <li><a href="#about" class="ios-tap block px-3 py-2 rounded-xl text-base font-medium hover:bg-rosy/20 hover:text-rosy w-full text-left">About</a></li>
+                <li><a href="#profile" class="ios-tap block px-3 py-2 rounded-xl text-base font-medium hover:bg-rosy/20 hover:text-rosy w-full text-left">Profile</a></li>
+                <li><a href="#work" class="ios-tap block px-3 py-2 rounded-xl text-base font-medium hover:bg-rosy/20 hover:text-rosy w-full text-left">Work</a></li>
+                <li><a href="#contact" class="ios-tap block px-3 py-2 rounded-xl text-base font-medium hover:bg-rosy/20 hover:text-rosy w-full text-left">Contact</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="relative z-10 pt-20">
+        
+        <!-- Hero Section -->
+        <section id="home" class="min-h-screen flex items-center justify-center px-6">
+            <div class="max-w-4xl mx-auto text-center" id="hero-content">
+                <p class="hero-anim text-rosy font-semibold tracking-widest uppercase mb-4 opacity-0 translate-y-4">Welcome to my digital space</p>
+                <h1 class="hero-anim text-5xl md:text-7xl font-extrabold text-bone mb-6 leading-tight opacity-0 translate-y-4">
+                    Building digital <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-rosy to-bone">experiences.</span>
+                </h1>
+                <p class="hero-anim mt-4 text-xl text-bone/70 max-w-2xl mx-auto mb-10 opacity-0 translate-y-4">
+                    I'm a passionate full-stack developer and UI/UX enthusiast dedicated to creating robust, scalable, and visually stunning web applications.
+                </p>
+                <div class="hero-anim flex justify-center gap-4 opacity-0 translate-y-4">
+                    <a href="#work" class="px-8 py-3 font-semibold ios-primary-btn ios-tap">
+                        View My Work
+                    </a>
+                    <a href="#contact" class="px-8 py-3 font-semibold text-bone hover:text-rosy ios-glass-btn ios-tap">
+                        Get In Touch
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="py-24 px-6 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex flex-col items-center">
+                    
+                    <div class="w-full max-w-3xl text-center">
+                        <h2 class="text-sm text-rosy font-bold tracking-widest uppercase mb-2">About Me</h2>
+                        <h3 class="text-4xl font-bold mb-6">Designing with purpose,<br/> coding with passion.</h3>
+                        <p class="text-bone/80 mb-6 leading-relaxed">
+                            Hello! I'm a developer who enjoys bridging the gap between engineering and design. My goal is to always build applications that are scalable and efficient under the hood while providing engaging, pixel-perfect user experiences.
+                        </p>
+                        <p class="text-bone/80 mb-8 leading-relaxed">
+                            When I'm not in front of a computer screen, I'm probably exploring new design trends, contributing to open-source projects, or experimenting with 3D web graphics.
+                        </p>
+                        <div class="grid grid-cols-2 gap-6 max-w-md mx-auto">
+                            <div class="glass-card p-6 border border-bone/5">
+                                <h4 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rosy to-bone mb-1">5+</h4>
+                                <p class="text-xs font-semibold text-bone/60 uppercase tracking-widest">Years Exp</p>
+                            </div>
+                            <div class="glass-card p-6 border border-bone/5">
+                                <h4 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rosy to-bone mb-1">50+</h4>
+                                <p class="text-xs font-semibold text-bone/60 uppercase tracking-widest">Projects</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Work Profile (Skills) Section -->
+        <section id="profile" class="py-24 px-6">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-sm text-rosy font-bold tracking-widest uppercase mb-2">Work Profile</h2>
+                    <h3 class="text-4xl font-bold">Skills & Expertise</h3>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Skill Card 1 -->
+                    <div class="glass-card p-8">
+                        <div class="w-14 h-14 bg-rosy/10 border border-rosy/20 shadow-inner flex items-center justify-center rounded-2xl mb-6">
+                            <i class="fas fa-code text-2xl text-rosy"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-4">Frontend Development</h4>
+                        <p class="text-bone/70 text-sm leading-relaxed mb-6">
+                            Building responsive, interactive UIs using modern frameworks and standard web technologies.
+                        </p>
+                        <ul class="text-sm text-bone/90 space-y-2">
+                            <li><i class="fas fa-check text-rosy mr-2"></i> HTML5 & CSS3 (Tailwind)</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> JavaScript (ES6+) & TypeScript</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> React.js / Next.js</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> Three.js (3D Web)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Skill Card 2 -->
+                    <div class="glass-card p-8">
+                        <div class="w-14 h-14 bg-rosy/10 border border-rosy/20 shadow-inner flex items-center justify-center rounded-2xl mb-6">
+                            <i class="fas fa-server text-2xl text-rosy"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-4">Backend & Architecture</h4>
+                        <p class="text-bone/70 text-sm leading-relaxed mb-6">
+                            Creating robust APIs, managing databases, and setting up scalable server architectures.
+                        </p>
+                        <ul class="text-sm text-bone/90 space-y-2">
+                            <li><i class="fas fa-check text-rosy mr-2"></i> Node.js & Express</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> Python / Django</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> PostgreSQL & MongoDB</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> REST APIs & GraphQL</li>
+                        </ul>
+                    </div>
+
+                    <!-- Skill Card 3 -->
+                    <div class="glass-card p-8">
+                        <div class="w-14 h-14 bg-rosy/10 border border-rosy/20 shadow-inner flex items-center justify-center rounded-2xl mb-6">
+                            <i class="fas fa-pen-nib text-2xl text-rosy"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-4">UI/UX Design</h4>
+                        <p class="text-bone/70 text-sm leading-relaxed mb-6">
+                            Designing intuitive user experiences, wireframes, and high-fidelity mockups.
+                        </p>
+                        <ul class="text-sm text-bone/90 space-y-2">
+                            <li><i class="fas fa-check text-rosy mr-2"></i> Figma & Adobe XD</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> User Research & Testing</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> Prototyping</li>
+                            <li><i class="fas fa-check text-rosy mr-2"></i> Design Systems</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Work Section (My Abilities) -->
+        <section id="work" class="py-24 px-6 relative">
+            <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-sm text-rosy font-bold tracking-widest uppercase mb-2">My Abilities</h2>
+                    <h3 class="text-4xl font-bold">Featured Capabilities</h3>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <!-- Project 1 (Interactive Tabs & Modal Activation) -->
+                    <div class="group relative overflow-hidden glass-card flex flex-col">
+                        <div class="h-64 w-full overflow-hidden flex-shrink-0 relative">
+                            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Project 1" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-carbon/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                        </div>
+                        <div class="p-8 flex-1 flex flex-col">
+                            <!-- Interactive Pill Tabs -->
+                            <div class="flex gap-3 mb-6" id="p1-tabs">
+                                <button onclick="toggleProject1Tab('react')" id="p1-tab-react" class="ios-tap ios-primary-btn px-4 py-1.5 text-xs font-semibold focus:outline-none">React</button>
+                                <button onclick="toggleProject1Tab('node')" id="p1-tab-node" class="ios-tap ios-glass-btn px-4 py-1.5 text-xs font-semibold text-bone hover:text-rosy focus:outline-none">Node.js</button>
+                            </div>
+                            
+                            <h4 class="text-2xl font-bold mb-2">Fintech Dashboard</h4>
+                            
+                            <!-- Dynamic Content Container -->
+                            <div id="p1-content" class="transition-opacity duration-300 ease-in-out opacity-100 flex-1 flex flex-col justify-between">
+                                <p id="p1-desc" class="text-bone/70 text-sm mb-6 min-h-[4rem]">A comprehensive financial dashboard with real-time data visualization, highlighting a highly responsive frontend UI built with React and Tailwind CSS.</p>
+                                <div class="mt-auto">
+                                    <a id="p1-link" href="#" onclick="openProjectModal(1, event)" class="ios-tap ios-glass-btn px-5 py-2.5 text-sm inline-flex items-center text-bone hover:text-rosy font-semibold group-hover:border-rosy/50">
+                                        View Project <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project 2 -->
+                    <div class="group relative overflow-hidden glass-card flex flex-col">
+                        <div class="h-64 w-full overflow-hidden flex-shrink-0 relative">
+                            <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Project 2" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-carbon/20 group-hover:bg-transparent transition-colors duration-500"></div>
+                        </div>
+                        <div class="p-8 flex-1 flex flex-col">
+                            <!-- Interactive Pill Tabs -->
+                            <div class="flex gap-3 mb-6" id="p2-tabs">
+                                <button onclick="toggleProject2Tab('threejs')" id="p2-tab-threejs" class="ios-tap ios-primary-btn px-4 py-1.5 text-xs font-semibold focus:outline-none">Three.js</button>
+                                <button onclick="toggleProject2Tab('tailwind')" id="p2-tab-tailwind" class="ios-tap ios-glass-btn px-4 py-1.5 text-xs font-semibold text-bone hover:text-rosy focus:outline-none">Tailwind</button>
+                            </div>
+                            
+                            <h4 class="text-2xl font-bold mb-2">3D E-Commerce</h4>
+                            
+                            <!-- Dynamic Content Container -->
+                            <div id="p2-content" class="transition-opacity duration-300 ease-in-out opacity-100 flex-1 flex flex-col justify-between">
+                                <p id="p2-desc" class="text-bone/70 text-sm mb-6 min-h-[4rem]">An experimental e-commerce concept allowing users to view and interact with products in a 3D space before purchasing.</p>
+                                <div class="mt-auto">
+                                    <a id="p2-link" href="#" onclick="openProjectModal(2, event)" class="ios-tap ios-glass-btn px-5 py-2.5 text-sm inline-flex items-center text-bone hover:text-rosy font-semibold group-hover:border-rosy/50">
+                                        View Project <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ✨ DYNAMIC ISLAND PROJECT LINKS IN A CARD ✨ -->
+                <div class="mt-20 glass-card p-8 md:p-12 relative overflow-hidden w-full z-10 border border-rosy/20">
+                    <!-- Subtle background glow inside the card -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-rosy/10 rounded-full blur-[80px] pointer-events-none"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center gap-6 w-full">
+                        <div class="text-center mb-4">
+                            <h2 class="text-sm text-rosy font-bold tracking-widest uppercase mb-2">My Projects</h2>
+                            <h3 class="text-3xl md:text-4xl font-bold text-bone mb-3">Standalone Apps</h3>
+                            <p class="text-bone/70 text-sm max-w-md mx-auto">Tap to expand and learn more about these interactive utility experiences.</p>
+                        </div>
+                        
+                        <!-- Live Bridge Island -->
+                        <div class="dynamic-island" onclick="handleIslandClick(this, 'https://sauravbr.github.io/Livebridge')">
+                            <div class="island-header">
+                                <i class="fas fa-layer-group text-rosy text-xl drop-shadow-[0_0_10px_rgba(var(--color-rosy)/0.8)]"></i>
+                                <span class="font-extrabold text-lg text-bone tracking-wide">Live Bridge</span>
+                            </div>
+                            <div class="island-tap-hint">Tap to expand</div>
+                            <div class="island-content">
+                                <p class="text-sm text-bone/70 leading-relaxed mb-4">A utility app enhancing your system's dynamic island and Samsung Now Bar with live progress, OTP notifications, and more.</p>
+                                <div class="inline-flex items-center gap-2 text-rosy text-sm font-bold uppercase tracking-wider group hover:text-white transition-colors">
+                                    Tap again to launch <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pixel Music Island -->
+                        <div class="dynamic-island" onclick="handleIslandClick(this, 'https://sauravbr.github.io/PixelMusic')">
+                            <div class="island-header">
+                                <i class="fas fa-music text-rosy text-xl drop-shadow-[0_0_10px_rgba(var(--color-rosy)/0.8)]"></i>
+                                <span class="font-extrabold text-lg text-bone tracking-wide">Pixel Music</span>
+                            </div>
+                            <div class="island-tap-hint">Tap to expand</div>
+                            <div class="island-content">
+                                <p class="text-sm text-bone/70 leading-relaxed mb-4">An open-source YouTube Music client featuring extensive capabilities and a stunning Material You UI design.</p>
+                                <div class="inline-flex items-center gap-2 text-rosy text-sm font-bold uppercase tracking-wider group hover:text-white transition-colors">
+                                    Tap again to launch <i class="fas fa-arrow-right transform group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coming Soon Placeholder -->
+                        <div class="dynamic-island cursor-default opacity-60 mt-2" style="min-width: 200px;">
+                            <div class="island-header" style="padding-bottom: 1.25rem;">
+                                <i class="fas fa-hourglass-half text-bone/60 text-base"></i>
+                                <span class="font-bold text-sm text-bone/60 tracking-wide">More coming soon...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ✨ AI Project Architect Feature -->
+                <div class="mt-24 glass-card p-8 md:p-12 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-rosy/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-6">
+                            <span class="w-12 h-12 bg-rosy/20 text-rosy rounded-2xl border border-rosy/30 shadow-inner flex items-center justify-center"><i class="fas fa-robot text-xl"></i></span>
+                            <h4 class="text-2xl font-bold text-bone">✨ AI Project Architect</h4>
+                        </div>
+                        <p class="text-bone/70 mb-8 max-w-2xl leading-relaxed">Have a project in mind? Briefly describe it, and my AI assistant will instantly recommend the ideal tech stack and architecture for us to build it.</p>
+                        
+                        <div class="flex flex-col md:flex-row gap-4 mb-6">
+                            <input type="text" id="ai-project-input" class="flex-1 ios-glass-input px-5 py-4 placeholder-bone/40" placeholder="e.g., A mobile app that identifies plants using the camera">
+                            <button onclick="architectProject()" id="ai-architect-btn" class="ios-tap ios-primary-btn px-8 py-4 font-semibold whitespace-nowrap flex items-center justify-center gap-3">
+                                ✨ Generate Architecture
+                            </button>
+                        </div>
+                        
+                        <div id="ai-architect-output" class="hidden ios-glass-input border-l-4 border-l-rosy p-6 text-bone/90 text-sm leading-relaxed mt-6">
+                            <!-- Output will be injected here -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Contacts Section -->
+        <section id="contact" class="py-24 px-6">
+            <div class="max-w-3xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-sm text-rosy font-bold tracking-widest uppercase mb-2">Get In Touch</h2>
+                    <h3 class="text-4xl font-bold mb-4">Let's build something together.</h3>
+                    <p class="text-bone/70">Fill out the form below to shoot me an email directly via Gmail.</p>
+                </div>
+
+                <div class="glass-card p-8 md:p-12">
+                    <form id="contact-form" action="https://formspree.io/f/xwvjnrbj" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 col-span-1 md:col-span-2">
+                            <div>
+                                <label for="name" class="block text-sm font-medium text-bone/80 mb-2 pl-1">First & Last Name</label>
+                                <input type="text" id="name" name="Name" required class="w-full ios-glass-input px-5 py-4">
+                            </div>
+                            <div>
+                                <label for="email" class="block text-sm font-medium text-bone/80 mb-2 pl-1">Email Address</label>
+                                <input type="email" id="email" name="Email" required class="w-full ios-glass-input px-5 py-4">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-8 relative col-span-1 md:col-span-2">
+                            <div class="flex justify-between items-end mb-2 pl-1 pr-1">
+                                <label for="message" class="block text-sm font-medium text-bone/80">Message</label>
+                                
+                                <!-- ✨ EXPENSIVE MAGIC BUTTON: Ask Shru -->
+                                <button type="button" onclick="askShru()" id="ai-draft-btn" class="ios-tap relative overflow-hidden px-5 py-2 rounded-full border border-rosy/40 shadow-[0_0_15px_rgba(var(--color-rosy)/0.3)] bg-carbon/50 backdrop-blur-xl transition-all hover:shadow-[0_0_30px_rgba(var(--color-rosy)/0.6)] group">
+                                    <span id="ai-draft-btn-text" class="magic-btn-text font-extrabold text-sm flex items-center gap-2 tracking-wide relative z-10">
+                                        <i class="fas fa-wand-magic-sparkles"></i> Ask Shru
+                                    </span>
+                                </button>
+                                
+                            </div>
+                            <textarea id="message" name="Message" rows="5" required class="w-full ios-glass-input px-5 py-4"></textarea>
+                        </div>
+                        <div class="col-span-1 md:col-span-2 mt-4">
+                            <button type="submit" class="w-full ios-tap ios-primary-btn font-bold py-5 flex justify-center items-center gap-3 text-lg">
+                                Send Message <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-bone/10 bg-carbon/50 backdrop-blur-lg pt-12 pb-8 relative z-10">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+                <a href="#home" class="ios-tap text-xl font-bold tracking-tighter text-bone">
+                    SAURAV<span class="text-rosy">.DEV</span>
+                </a>
+                <p class="text-bone/50 text-sm mt-2">© 2026 All rights reserved.</p>
+            </div>
+            <div class="flex space-x-6">
+                <!-- Swapped footer icons to Telegram, WhatsApp, Instagram -->
+                <a href="https://t.me/Saurav124x" target="_blank" class="ios-tap w-12 h-12 rounded-full ios-glass-btn flex items-center justify-center text-bone hover:text-[#0088cc] hover:border-[#0088cc] transition-colors" title="Telegram">
+                    <i class="fab fa-telegram-plane text-lg"></i>
+                </a>
+                <a href="https://wa.me/+918293189358" target="_blank" class="ios-tap w-12 h-12 rounded-full ios-glass-btn flex items-center justify-center text-bone hover:text-[#25D366] hover:border-[#25D366] transition-colors" title="WhatsApp">
+                    <i class="fab fa-whatsapp text-lg"></i>
+                </a>
+                <a href="https://instagram.com/holy_saurav" target="_blank" class="ios-tap w-12 h-12 rounded-full ios-glass-btn flex items-center justify-center text-bone hover:text-[#E1306C] hover:border-[#E1306C] transition-colors" title="Instagram">
+                    <i class="fab fa-instagram text-lg"></i>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================== -->
+    <!-- HIDDEN PROJECT MODAL (NEW CARD) UI -->
+    <!-- ============================================== -->
+    <div id="project-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <!-- Blur Backdrop -->
+        <div class="absolute inset-0 bg-carbon/80 backdrop-blur-xl" onclick="closeProjectModal()"></div>
+        
+        <!-- The Modal Card -->
+        <div id="project-modal-card" class="relative w-full max-w-4xl mx-4 glass-card overflow-hidden transform scale-95 transition-transform duration-400 ease-out max-h-[90vh] flex flex-col border-white/20">
+            
+            <!-- Close Button -->
+            <button onclick="closeProjectModal()" class="ios-tap ios-glass-btn absolute top-6 right-6 w-12 h-12 flex items-center justify-center z-10 text-white shadow-xl">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <!-- Modal Image Header -->
+            <div class="h-64 sm:h-80 w-full overflow-hidden flex-shrink-0 relative">
+                <img id="modal-img" src="" alt="Project Preview" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-carbon to-transparent opacity-80"></div>
+            </div>
+            
+            <!-- Modal Content Body -->
+            <div class="p-8 sm:p-12 overflow-y-auto">
+                <div class="flex flex-wrap gap-3 mb-6" id="modal-tags">
+                    <!-- Tags injected via JS -->
+                </div>
+                
+                <h3 id="modal-title" class="text-3xl sm:text-4xl font-bold text-bone mb-6"></h3>
+                <p id="modal-desc" class="text-bone/80 text-lg leading-relaxed mb-10"></p>
+                
+                <div class="flex flex-wrap gap-4">
+                    <a href="#" onclick="event.preventDefault(); showToast('Live demo isn\'t available right now.')" class="ios-tap ios-primary-btn px-8 py-3.5 font-semibold flex items-center gap-3 shadow-lg">
+                        <i class="fas fa-external-link-alt"></i> Live Demo
+                    </a>
+                    <a href="#" onclick="event.preventDefault(); showToast('Ask the developer for the source code.')" class="ios-tap ios-glass-btn px-8 py-3.5 font-semibold flex items-center gap-3 text-bone hover:text-rosy">
+                        <i class="fab fa-github text-lg"></i> Source Code
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-[9999] flex flex-col gap-3 pointer-events-none w-[90%] max-w-md"></div>
+
+    <!-- Invisible Hitbox for the Rocket -->
+    <div id="rocket-hitbox" class="fixed bottom-6 right-6 w-16 h-[70px] z-[9999] cursor-pointer bg-transparent pointer-events-auto transition-transform ease-out"></div>
+
+    <!-- Interactive CSS Magical Scroll Progress -->
+    <div id="rocket-container" class="fixed bottom-6 right-6 z-[5] flex flex-col items-center pointer-events-none transition-transform ease-out">
+        <div id="rocket-body" class="relative w-16 h-[70px] transition-transform duration-500 ease-in-out origin-center flex flex-col items-center drop-shadow-[0_0_8px_rgb(var(--color-rosy)/0.5)]">
+            <div class="absolute top-0 w-8 h-14 bg-rosy/20 rounded-full blur-md z-0"></div>
+            <div class="relative w-4 h-12 bg-white/10 backdrop-blur-sm border border-bone/60 shadow-[0_0_15px_rgb(var(--color-rosy)/0.6),inset_0_0_8px_rgb(var(--color-bone)/0.9)] z-10 flex flex-col items-center overflow-hidden" style="border-radius: 50% 50% 40% 40% / 70% 70% 30% 30%;">
+                <div class="w-1.5 h-5 mt-1.5 bg-gradient-to-b from-bone to-rosy rounded-full shadow-[0_0_8px_rgb(var(--color-bone))]"></div>
+            </div>
+            <div class="absolute top-4 -left-1.5 w-1.5 h-6 bg-gradient-to-b from-bone/90 to-transparent border-l border-bone/50 rounded-tl-full transform -skew-y-[20deg] z-10 blur-[0.5px]"></div>
+            <div class="absolute top-4 -right-1.5 w-1.5 h-6 bg-gradient-to-b from-bone/90 to-transparent border-r border-bone/50 rounded-tr-full transform skew-y-[20deg] z-10 blur-[0.5px]"></div>
+            <div id="rocket-exhaust-fire" class="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center z-0 origin-top">
+                <div class="w-2.5 h-20 bg-gradient-to-b from-rosy via-rosy/40 to-transparent rounded-full blur-[2px] animate-pulse-trail"></div>
+                <div class="absolute top-0 w-1 h-28 bg-gradient-to-b from-bone via-rosy/60 to-transparent rounded-full blur-[1px]"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Logic Scripts -->
+    <script>
+        /* =========================================
+           Dynamic Island Logic
+           ========================================= */
+        function handleIslandClick(element, url) {
+            const isExpanded = element.classList.contains('expanded');
+            
+            if (!isExpanded) {
+                // First tap: close others, then expand this one
+                document.querySelectorAll('.dynamic-island.expanded').forEach(island => {
+                    if(island !== element) island.classList.remove('expanded');
+                });
+                
+                // Add a small bounce feedback before expanding
+                element.style.transform = 'scale(0.97)';
+                setTimeout(() => {
+                    element.style.transform = '';
+                    element.classList.add('expanded');
+                }, 100);
+            } else {
+                // Second tap (when expanded): add a press feedback then open the link
+                element.style.transform = 'scale(0.97)';
+                setTimeout(() => {
+                    element.style.transform = '';
+                    window.open(url, '_blank');
+                }, 150);
+            }
+        }
+
+        /* =========================================
+           Splash Screen Enter Logic
+           ========================================= */
+        document.getElementById('enter-btn').addEventListener('click', () => {
+            const splash = document.getElementById('splash-screen');
+            const heroContent = document.getElementById('hero-content');
+            
+            // Slide the entire splash screen up out of view
+            splash.style.transform = 'translateY(-100vh)';
+            splash.style.opacity = '0';
+            
+            // Trigger the staggered fade-in animations on the main hero text
+            heroContent.classList.add('play-hero-animations');
+            
+            // Unlock scrolling after the splash transition finishes
+            setTimeout(() => {
+                document.body.classList.remove('locked');
+                splash.style.display = 'none'; // Completely remove from flow
+            }, 1200); 
+        });
+
+        /* =========================================
+           1. Contact Form - Redirect to Gmail logic
+           ========================================= */
+        function sendEmailViaGmail(e) {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+            const subject = encodeURIComponent(`New Portfolio Inquiry from ${name}`);
+            const body = encodeURIComponent(`Message:\n${message}\n\n---\nSender Details:\nName: ${name}\nEmail: ${email}`);
+            const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=atappu805@gmail.com&su=${subject}&body=${body}`;
+            window.open(gmailLink, '_blank');
+        }
+
+        /* =========================================
+           2. Mobile Menu Toggle
+           ========================================= */
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+        btn.addEventListener('click', () => { menu.classList.toggle('hidden'); });
+
+        /* =========================================
+           3. Three.js Interactive Background
+           ========================================= */
+        const canvasContainer = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.001);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 500;
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        canvasContainer.appendChild(renderer.domElement);
+
+        const colorBone = new THREE.Color('#ded3c0');
+        const colorRosy = new THREE.Color('#bb553a');
+        const colorBg = new THREE.Color('#000000');
+
+        const particleCount = 4000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            positions.push(x, y, z);
+            const mixedColor = Math.random() > 0.8 ? colorRosy : colorBone;
+            const intensity = Math.random() * 0.5 + 0.5;
+            colors.push(mixedColor.r * intensity, mixedColor.g * intensity, mixedColor.b * intensity);
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({ size: 3, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true });
+        const particles = new THREE.Points(geometry, material);
+        scene.add(particles);
+
+        function createCircleTexture(isDark = true) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            context.beginPath();
+            context.arc(64, 64, 60, 0, Math.PI * 2, false);
+            context.lineWidth = 4;
+            context.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(28, 28, 28, 0.4)';
+            context.stroke();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const bigCircleCount = 300;
+        const bigCircleGeo = new THREE.BufferGeometry();
+        const bigCirclePositions = [];
+        for (let i = 0; i < bigCircleCount; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            bigCirclePositions.push(x, y, z);
+        }
+        
+        bigCircleGeo.setAttribute('position', new THREE.Float32BufferAttribute(bigCirclePositions, 3));
+        const bigCircleMat = new THREE.PointsMaterial({
+            size: 300, map: createCircleTexture(true), transparent: true, opacity: 0.6, color: colorRosy, depthWrite: false, blending: THREE.AdditiveBlending 
+        });
+        const bigCircles = new THREE.Points(bigCircleGeo, bigCircleMat);
+        scene.add(bigCircles);
+
+        function updateThreeTheme(isDark) {
+            colorBone.set(isDark ? '#ded3c0' : '#1c1c1c');
+            colorRosy.set(isDark ? '#bb553a' : '#ffb6c1');
+            colorBg.set(isDark ? '#000000' : '#ffffff');
+            scene.fog.color.copy(colorBg);
+
+            const cols = particles.geometry.attributes.color.array;
+            for (let i = 0; i < particleCount; i++) {
+                const mixedColor = Math.random() > 0.8 ? colorRosy : colorBone;
+                const intensity = Math.random() * 0.5 + 0.5;
+                cols[i * 3] = mixedColor.r * intensity;
+                cols[i * 3 + 1] = mixedColor.g * intensity;
+                cols[i * 3 + 2] = mixedColor.b * intensity;
+            }
+            particles.geometry.attributes.color.needsUpdate = true;
+            bigCircleMat.map = createCircleTexture(isDark);
+            bigCircleMat.blending = isDark ? THREE.AdditiveBlending : THREE.NormalBlending;
+            bigCircleMat.opacity = isDark ? 0.6 : 0.2;
+            bigCircleMat.needsUpdate = true;
+        }
+
+        const themeToggles = [document.getElementById('theme-toggle-desktop'), document.getElementById('theme-toggle-mobile')];
+        const themeIcons = [document.getElementById('theme-icon-desktop'), document.getElementById('theme-icon-mobile')];
+        const htmlEl = document.documentElement;
+
+        themeToggles.forEach(toggle => {
+            if(!toggle) return;
+            toggle.addEventListener('click', () => {
+                htmlEl.classList.toggle('dark');
+                const isDark = htmlEl.classList.contains('dark');
+                themeIcons.forEach(icon => { if(icon) icon.className = isDark ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg'; });
+                
+                // Sync mobile browser status bar with a soft color that mimics the frosted glass
+                document.getElementById('theme-color-meta').setAttribute('content', isDark ? '#121212' : '#f5f5f5');
+                
+                updateThreeTheme(isDark);
+            });
+        });
+
+        let mouseX = 0; let mouseY = 0; let targetX = 0; let targetY = 0; let scrollY = window.scrollY;
+        const windowHalfX = window.innerWidth / 2; const windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX - windowHalfX) * 0.0005;
+            mouseY = (event.clientY - windowHalfY) * 0.0005;
+        });
+
+        const progressBar = document.getElementById('scroll-progress');
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            progressBar.style.width = ((scrollY / scrollHeight) * 100) + '%';
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+            particles.rotation.y += 0.0005; particles.rotation.x += 0.0002;
+            targetX = mouseX * 2; targetY = mouseY * 2;
+            particles.rotation.y += 0.05 * (targetX - particles.rotation.y);
+            particles.rotation.x += 0.05 * (targetY - particles.rotation.x);
+            bigCircles.rotation.y += 0.0003; bigCircles.rotation.x += 0.0001;
+            bigCircles.rotation.y += 0.02 * (targetX - bigCircles.rotation.y);
+            bigCircles.rotation.x += 0.02 * (targetY - bigCircles.rotation.x);
+            const scrollFactor = scrollY * 0.001;
+            camera.position.y = -(scrollY * 0.1);
+            particles.rotation.z = scrollFactor * 0.5; 
+            bigCircles.rotation.z = scrollFactor * 0.8; 
+            bigCircles.position.y = scrollY * 0.15;
+            renderer.render(scene, camera);
+        }
+        window.onload = function() { animate(); };
+
+        /* =========================================
+           4. AI Architect Project Logic
+           ========================================= */
+        async function architectProject() {
+            const inputEl = document.getElementById('ai-project-input');
+            const btnEl = document.getElementById('ai-architect-btn');
+            const idea = inputEl.value.trim();
+            
+            if (!idea) {
+                const orig = btnEl.innerHTML; btnEl.innerHTML = 'Please enter an idea first!';
+                setTimeout(() => btnEl.innerHTML = orig, 2000); return;
+            }
+            
+            const originalText = btnEl.innerHTML;
+            btnEl.innerHTML = '<i class="fas fa-circle-notch ai-loader"></i> Analyzing...';
+            btnEl.disabled = true; 
+            
+            setTimeout(() => {
+                const jokes = [
+                    "Beep boop... I'm on break ☕. That's the developer's job anyway!",
+                    "Nice idea! But I think Saurav should build this one himself. Contact him! 👇",
+                    "Error 403: AI too lazy. Please hire the developer to do this. 😜",
+                    "I could design that, but then what would Saurav do? Scroll down and ask him!"
+                ];
+                const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+                
+                showToast(randomJoke);
+                
+                btnEl.innerHTML = originalText; 
+                btnEl.disabled = false;
+            }, 1500);
+        }
+
+        /* =========================================
+           5. Complex CSS Rocket Scroll Progress & Logic
+           ========================================= */
+        const rocketContainer = document.getElementById('rocket-container');
+        const rocketBody = document.getElementById('rocket-body');
+        const rocketHitbox = document.getElementById('rocket-hitbox');
+        let scrollTimeout; let lastScrollTop = window.scrollY; let isTicking = false; let currentRotation = 0;
+
+        window.addEventListener('scroll', () => {
+            const currentScrollTop = window.scrollY;
+            if (typeof isBlasted !== 'undefined' && isBlasted && !isReforming) isReforming = true;
+            if (currentScrollTop > lastScrollTop) currentRotation = 0; 
+            else if (currentScrollTop < lastScrollTop) currentRotation = 180; 
+            lastScrollTop = currentScrollTop;
+            if (!isTicking) {
+                window.requestAnimationFrame(() => {
+                    const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                    if (scrollHeight > 0) {
+                        const scrollPercentage = currentScrollTop / scrollHeight;
+                        let trackHeight = window.innerHeight - 100; if (trackHeight < 0) trackHeight = 0; 
+                        const offset = scrollPercentage * trackHeight;
+                        rocketContainer.style.transform = `translateY(-${offset}px)`;
+                        rocketHitbox.style.transform = `translateY(-${offset}px)`;
+                        rocketBody.style.transform = `rotate(${currentRotation}deg)`;
+                    }
+                    isTicking = false;
+                });
+                isTicking = true;
+            }
+            rocketContainer.classList.add('flying');
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => { rocketContainer.classList.remove('flying'); }, 200);
+        });
+
+        /* =========================================
+           6. Magical Click-and-Scroll Blast Interaction
+           ========================================= */
+        const blastCanvas = document.createElement('canvas');
+        blastCanvas.id = 'magical-blast-canvas';
+        blastCanvas.className = 'fixed inset-0 z-[6] pointer-events-none opacity-0 transition-opacity duration-300';
+        document.body.appendChild(blastCanvas);
+        const bCtx = blastCanvas.getContext('2d');
+        let isBlasted = false; let isReforming = false; let blastParticles = []; let blastReqId = null; let blastFlashRGB = '255, 255, 255'; 
+
+        function resizeBlastCanvas() { blastCanvas.width = window.innerWidth; blastCanvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeBlastCanvas); resizeBlastCanvas();
+
+        rocketHitbox.addEventListener('click', () => {
+            if (isBlasted) return;
+            isBlasted = true; isReforming = false;
+            rocketContainer.style.visibility = 'hidden'; rocketHitbox.style.visibility = 'hidden';
+            blastCanvas.style.opacity = '1'; resizeBlastCanvas();
+            const computedStyle = getComputedStyle(document.documentElement);
+            const rosyRGB = computedStyle.getPropertyValue('--color-rosy').trim().replace(/ /g, ',');
+            const boneRGB = computedStyle.getPropertyValue('--color-bone').trim().replace(/ /g, ',');
+            blastFlashRGB = rosyRGB; 
+            const rect = rocketHitbox.getBoundingClientRect();
+            const startX = rect.left + rect.width / 2; const startY = rect.top + rect.height / 2;
+            blastParticles = [];
+            const colors = [`rgb(${rosyRGB})`, `rgba(${rosyRGB}, 0.7)`, `rgb(${boneRGB})`, '#ffffff']; 
+            for (let i = 0; i < 1500; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() > 0.4 ? (Math.random() * 25 + 5) : (Math.random() * 6 + 1);
+                blastParticles.push({
+                    x: startX, y: startY, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                    size: Math.random() * 2.5 + 0.5, color: colors[Math.floor(Math.random() * colors.length)],
+                    friction: Math.random() * 0.04 + 0.88, driftAngle: Math.random() * Math.PI * 2, driftSpeed: Math.random() * 0.4 + 0.1, convergeSpeed: Math.random() * 0.005 + 0.002 
+                });
+            }
+            cancelAnimationFrame(blastReqId); animateBlast();
+        });
+
+        function animateBlast() {
+            if (!isBlasted) return;
+            bCtx.clearRect(0, 0, blastCanvas.width, blastCanvas.height);
+            bCtx.globalCompositeOperation = 'screen'; 
+            let allConverged = true;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrollPercentage = scrollHeight > 0 ? (window.scrollY / scrollHeight) : 0;
+            let trackHeight = window.innerHeight - 100; if (trackHeight < 0) trackHeight = 0;
+            const offset = scrollPercentage * trackHeight;
+            const targetX = window.innerWidth - 24 - 32; const targetY = window.innerHeight - 24 - 35 - offset;
+
+            blastParticles.forEach(p => {
+                if (!isReforming) {
+                    allConverged = false;
+                    p.vx *= p.friction; p.vy *= p.friction;
+                    if (Math.abs(p.vx) < 0.5 && Math.abs(p.vy) < 0.5) {
+                        p.driftAngle += (Math.random() - 0.5) * 0.2; p.x += Math.cos(p.driftAngle) * p.driftSpeed; p.y += Math.sin(p.driftAngle) * p.driftSpeed;
+                    } else { p.x += p.vx; p.y += p.vy; }
+                } else {
+                    const dx = targetX - p.x; const dy = targetY - p.y; const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 5) {
+                        allConverged = false; p.x += dx * p.convergeSpeed; p.y += dy * p.convergeSpeed;
+                        p.convergeSpeed *= 1.06; if (p.convergeSpeed > 0.3) p.convergeSpeed = 0.3; 
+                    } else { p.x = targetX; p.y = targetY; }
+                }
+                bCtx.fillStyle = p.color; bCtx.beginPath(); bCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2); bCtx.fill();
+            });
+            
+            if (isReforming && allConverged) {
+                const gradient = bCtx.createRadialGradient(targetX, targetY, 0, targetX, targetY, 150);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 1)'); gradient.addColorStop(0.2, `rgba(${blastFlashRGB}, 0.8)`); gradient.addColorStop(1, `rgba(${blastFlashRGB}, 0)`);
+                bCtx.fillStyle = gradient; bCtx.fillRect(targetX - 150, targetY - 150, 300, 300);
+                rocketContainer.style.visibility = 'visible'; rocketHitbox.style.visibility = 'visible';
+                blastCanvas.style.opacity = '0'; isBlasted = false; isReforming = false;
+                setTimeout(() => { bCtx.clearRect(0, 0, blastCanvas.width, blastCanvas.height); }, 400);
+                return; 
+            }
+            blastReqId = requestAnimationFrame(animateBlast);
+        }
+
+        /* =========================================
+           7. Interactive Project Tabs & Modal Logic
+           ========================================= */
+        
+        let currentP1Tab = 'react';
+        let currentP2Tab = 'threejs';
+
+        const activeTabClasses = "ios-tap ios-primary-btn px-4 py-1.5 text-xs font-semibold focus:outline-none";
+        const inactiveTabClasses = "ios-tap ios-glass-btn px-4 py-1.5 text-xs font-semibold text-bone hover:text-rosy focus:outline-none";
+
+        const project1Data = {
+            react: {
+                previewDesc: "A comprehensive financial dashboard with real-time data visualization, highlighting a highly responsive frontend UI built with React and Tailwind CSS.",
+                modalTitle: "Fintech Dashboard - Frontend",
+                modalDesc: "The frontend of this dashboard was engineered utilizing modern React.js patterns and Tailwind CSS. It focuses heavily on real-time data binding, complex chart rendering utilizing Recharts, and deep integration with global state management for instantaneous UI updates across components.",
+                modalImg: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+                tags: ["React.js", "Tailwind CSS", "Recharts", "Redux", "Framer Motion"]
+            },
+            node: {
+                previewDesc: "A robust backend architecture handling secure authentication, real-time WebSocket data feeds, and complex financial data aggregations using Node.js.",
+                modalTitle: "Fintech Dashboard - Backend Engine",
+                modalDesc: "The backend is a high-performance RESTful API paired with WebSockets to stream live market data. Built using Node.js and Express, it relies heavily on PostgreSQL for complex transactional aggregations, utilizing Prisma ORM, and integrates JWT security to authenticate user sessions efficiently.",
+                modalImg: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+                tags: ["Node.js", "Express", "PostgreSQL", "Socket.io", "Prisma ORM"]
+            }
+        };
+
+        const project2Data = {
+            threejs: {
+                previewDesc: "An experimental e-commerce concept allowing users to view and interact with products in a 3D space before purchasing.",
+                modalTitle: "3D E-Commerce - WebGL Rendering",
+                modalDesc: "The core 3D experience is powered by Three.js. It features custom shaders, realistic lighting models, and optimized geometry loading using GLTF format to ensure smooth 60fps performance across devices while users rotate and inspect products.",
+                modalImg: "https://images.unsplash.com/photo-1618365908648-e71bf5716b22?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+                tags: ["Three.js", "WebGL", "GLSL Shaders", "JavaScript", "3D Modeling"]
+            },
+            tailwind: {
+                previewDesc: "A sleek, immersive UI overlay built with Tailwind CSS, seamlessly integrating 2D DOM elements with the underlying 3D canvas.",
+                modalTitle: "3D E-Commerce - Interface Design",
+                modalDesc: "The user interface acts as a transparent, interactive glass layer over the 3D canvas. Utilizing Tailwind CSS, the UI is completely responsive, featuring custom animations, glassmorphism effects, and highly accessible controls that don't interfere with the 3D touch interactions.",
+                modalImg: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80",
+                tags: ["Tailwind CSS", "HTML5", "CSS Animations", "UI/UX", "Glassmorphism"]
+            }
+        };
+
+        function toggleProject1Tab(tab) {
+            currentP1Tab = tab;
+            const contentDiv = document.getElementById('p1-content');
+            const descEl = document.getElementById('p1-desc');
+            const tabReact = document.getElementById('p1-tab-react');
+            const tabNode = document.getElementById('p1-tab-node');
+
+            contentDiv.style.opacity = '0';
+
+            setTimeout(() => {
+                descEl.textContent = project1Data[tab].previewDesc;
+
+                if (tab === 'react') {
+                    tabReact.className = activeTabClasses;
+                    tabNode.className = inactiveTabClasses;
+                } else {
+                    tabNode.className = activeTabClasses;
+                    tabReact.className = inactiveTabClasses;
+                }
+                contentDiv.style.opacity = '1';
+            }, 300);
+        }
+
+        function toggleProject2Tab(tab) {
+            currentP2Tab = tab;
+            const contentDiv = document.getElementById('p2-content');
+            const descEl = document.getElementById('p2-desc');
+            const tabThreejs = document.getElementById('p2-tab-threejs');
+            const tabTailwind = document.getElementById('p2-tab-tailwind');
+
+            contentDiv.style.opacity = '0';
+
+            setTimeout(() => {
+                descEl.textContent = project2Data[tab].previewDesc;
+
+                if (tab === 'threejs') {
+                    tabThreejs.className = activeTabClasses;
+                    tabTailwind.className = inactiveTabClasses;
+                } else {
+                    tabTailwind.className = activeTabClasses;
+                    tabThreejs.className = inactiveTabClasses;
+                }
+                contentDiv.style.opacity = '1';
+            }, 300);
+        }
+
+        function openProjectModal(projectNum, e) {
+            e.preventDefault(); 
+            const data = projectNum === 1 ? project1Data[currentP1Tab] : project2Data[currentP2Tab];
+            
+            document.getElementById('modal-title').textContent = data.modalTitle;
+            document.getElementById('modal-desc').textContent = data.modalDesc;
+            
+            const imgEl = document.getElementById('modal-img');
+            imgEl.onerror = function() {
+                this.onerror = null;
+                this.src = projectNum === 1 
+                    ? 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                    : 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+            };
+            imgEl.src = data.modalImg;
+            
+            const tagsContainer = document.getElementById('modal-tags');
+            tagsContainer.innerHTML = data.tags.map(tag => 
+                `<span class="px-4 py-1 text-sm font-semibold ios-glass-btn text-bone">${tag}</span>`
+            ).join('');
+            
+            const modal = document.getElementById('project-modal');
+            const card = document.getElementById('project-modal-card');
+            
+            modal.classList.remove('hidden');
+            void modal.offsetWidth; 
+            
+            modal.classList.remove('opacity-0');
+            modal.classList.add('opacity-100');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectModal() {
+            const modal = document.getElementById('project-modal');
+            const card = document.getElementById('project-modal-card');
+            
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = ''; 
+            }, 300);
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            toast.className = 'ios-glass-btn px-6 py-4 text-bone font-semibold text-sm transition-all duration-300 transform translate-y-10 opacity-0 flex items-center justify-center gap-3 w-full';
+            toast.innerHTML = `<i class="fas fa-info-circle text-rosy text-lg"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        /* =========================================
+           8. Ask Shru Logic (Fake AI Magic)
+           ========================================= */
+        let lastShruJoke = -1;
+
+        function askShru() {
+            const messageBox = document.getElementById("message");
+            const btnEl = document.getElementById("ai-draft-btn");
+            const btnText = document.getElementById("ai-draft-btn-text");
+            
+            // 1. Fake loading state & clear old text
+            btnText.innerHTML = '<i class="fas fa-circle-notch ai-loader"></i> Summoning...';
+            btnEl.disabled = true;
+            
+            messageBox.classList.remove('foggy-text');
+            messageBox.value = ""; 
+            
+            // 2. Wait 1.2 seconds, then deliver the magical joke
+            setTimeout(() => {
+                const jokes = [
+                    "Shru is currently on a tea break ☕. Try typing manually!",
+                    "Shru is busy spending some quality time with ChatGPT right now. 🤫",
+                    "Shru just broke up with Saurav, so she is NOT in the mood right now. 💔",
+                    "Shru says: 'It's the developer's job to type! I'm just here to look pretty.' ✨",
+                    "Error 404: Shru's motivation not found. Please leave a message after the beep."
+                ];
+                
+                // Guarantee a NEW joke every tap by checking against the last one
+                let nextJokeIndex;
+                do {
+                    nextJokeIndex = Math.floor(Math.random() * jokes.length);
+                } while (nextJokeIndex === lastShruJoke);
+                
+                lastShruJoke = nextJokeIndex;
+                
+                // Set the text value
+                messageBox.value = jokes[nextJokeIndex];
+                
+                // Force a browser reflow so the animation successfully triggers again
+                void messageBox.offsetWidth;
+                
+                // Add the magical foggy text reveal animation
+                messageBox.classList.add('foggy-text');
+                
+                // 3. Reset button
+                btnText.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> Ask Shru';
+                btnEl.disabled = false;
+            }, 1200);
+        }
+
+        /* =========================================
+           9. Photo Shatter & Magical Restore Logic
+           ========================================= */
+        let portraitShattered = false;
+        let portraitParticles = [];
+        let smokeParticles = [];
+        let pCtx;
+        let pCanvas;
+        let shatterAnimId;
+
+        function initPortraitCanvas() {
+            pCanvas = document.getElementById('portrait-shatter-canvas');
+            pCtx = pCanvas.getContext('2d');
+            // Sync canvas resolution to its actual display size
+            pCanvas.width = pCanvas.offsetWidth;
+            pCanvas.height = pCanvas.offsetHeight;
+        }
+
+        function shatterPortrait() {
+            if (portraitShattered) return;
+            portraitShattered = true;
+            
+            initPortraitCanvas();
+            const imgEl = document.getElementById('portrait-img');
+            const badgeEl = document.getElementById('portrait-badge');
+            
+            // 1. Extract Actual Colors from Image
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = pCanvas.width;
+            tempCanvas.height = pCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+            
+            // Apply the dark memory filter to the canvas context so particles match the dark aesthetic
+            tempCtx.filter = 'grayscale(75%) brightness(55%) sepia(20%) hue-rotate(-10deg)';
+            
+            try {
+                // Draw the image onto the hidden canvas to extract pixel data
+                tempCtx.drawImage(imgEl, 0, 0, tempCanvas.width, tempCanvas.height);
+            } catch(e) {
+                console.warn("Could not draw image to canvas for pixel extraction.", e);
+            }
+            
+            let imgData;
+            try {
+                imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height).data;
+            } catch (e) {
+                console.warn("CORS issue extracting pixels. Falling back to theme colors.", e);
+            }
+
+            const computedStyle = getComputedStyle(document.documentElement);
+            const rosyRGB = computedStyle.getPropertyValue('--color-rosy').trim().replace(/ /g, ',');
+            const fallbackColors = [`rgba(${rosyRGB}, 0.8)`, '#ded3c0', '#ffffff', '#1c1c1c'];
+
+            // Hide image and badge instantly
+            imgEl.style.opacity = '0';
+            if (badgeEl) badgeEl.style.opacity = '0';
+            
+            // Reset particles
+            portraitParticles = [];
+            smokeParticles = [];
+            
+            // Generate finer, slower dust-like particles that sample colors from the actual photo
+            for(let i = 0; i < 800; i++) {
+                const x = Math.random() * pCanvas.width;
+                const y = Math.random() * pCanvas.height;
+                
+                let pColor;
+                if (imgData) {
+                    const px = Math.floor(x);
+                    const py = Math.floor(y);
+                    const idx = (py * tempCanvas.width + px) * 4;
+                    // Add slight opacity to the image pixels for a glassy/dust effect
+                    pColor = `rgba(${imgData[idx]}, ${imgData[idx+1]}, ${imgData[idx+2]}, ${Math.max(0.6, imgData[idx+3]/255)})`;
+                } else {
+                    pColor = fallbackColors[Math.floor(Math.random() * fallbackColors.length)];
+                }
+
+                const shapeRand = Math.random();
+                let shape = 'circle';
+                if (shapeRand > 0.7) shape = 'rect';
+                else if (shapeRand > 0.4) shape = 'strokeCircle'; // Hollow ring shape
+
+                portraitParticles.push({
+                    x: x,
+                    y: y,
+                    // Very SLOW, gentle outward burst
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 5 - 1,
+                    size: Math.random() * 3 + 1, // Tiny sizes (1px to 4px)
+                    color: pColor,
+                    gravity: 0.04 + Math.random() * 0.06, // Very low gravity for a slow, floating fall
+                    rotation: Math.random() * 360,
+                    rotationSpeed: (Math.random() - 0.5) * 5,
+                    shape: shape
+                });
+            }
+            
+            animateShatter();
+            
+            // Fade in the restore UI slightly later since the fall is much slower
+            setTimeout(() => {
+                const restoreContainer = document.getElementById('portrait-restore-container');
+                restoreContainer.classList.remove('hidden');
+                void restoreContainer.offsetWidth; // Reflow
+                restoreContainer.classList.remove('opacity-0');
+                restoreContainer.classList.add('opacity-100');
+            }, 3000);
+        }
+
+        function animateShatter() {
+            if (!portraitShattered) return;
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            
+            // Update & Draw Shattered Debris
+            portraitParticles.forEach(p => {
+                // Apply air friction for a gentle, floating effect
+                p.vx *= 0.98;
+                p.vy += p.gravity;
+                p.vy *= 0.985; // Terminal velocity dampening
+                
+                p.x += p.vx;
+                p.y += p.vy;
+                p.rotation += p.rotationSpeed;
+                
+                // Floor Collision Logic - Pile up slowly at the bottom
+                const floor = pCanvas.height - p.size / 2;
+                if (p.y >= floor) {
+                    p.y = floor;
+                    if (Math.abs(p.vy) > 0.5) {
+                        p.vy *= -(0.1 + Math.random() * 0.1); // Soft gentle bounce
+                        p.rotationSpeed *= 0.4;
+                        p.vx *= 0.7; // Friction on the floor
+                    } else {
+                        p.vy = 0; // Settled
+                        p.gravity = 0;
+                        p.rotationSpeed = 0;
+                        p.vx = 0;
+                    }
+                }
+                
+                // Keep inside walls
+                if (p.x < 0) { p.x = 0; p.vx *= -0.5; }
+                if (p.x > pCanvas.width) { p.x = pCanvas.width; p.vx *= -0.5; }
+                
+                pCtx.save();
+                pCtx.translate(p.x, p.y);
+                pCtx.rotate(p.rotation * Math.PI / 180);
+                
+                // Render fine particles
+                if (p.shape === 'rect') {
+                    pCtx.fillStyle = p.color;
+                    pCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                } else if (p.shape === 'circle') {
+                    pCtx.fillStyle = p.color;
+                    pCtx.beginPath();
+                    pCtx.arc(0, 0, p.size/2, 0, Math.PI * 2);
+                    pCtx.fill();
+                } else {
+                    // Hollow circle rendering
+                    pCtx.strokeStyle = p.color;
+                    pCtx.lineWidth = 1;
+                    pCtx.beginPath();
+                    pCtx.arc(0, 0, p.size/2, 0, Math.PI * 2);
+                    pCtx.stroke();
+                }
+                pCtx.restore();
+            });
+            
+            // Continuously Spawn Rising Smoke
+            if (Math.random() < 0.4) {
+                const isRosy = Math.random() > 0.7;
+                smokeParticles.push({
+                    x: Math.random() * pCanvas.width,
+                    y: pCanvas.height - Math.random() * 30, // Spawns from the debris pile
+                    vx: (Math.random() - 0.5) * 1.0,
+                    vy: -(Math.random() * 1.5 + 0.5), // Drifts upwards
+                    size: Math.random() * 30 + 15,
+                    life: 1.0,
+                    decay: Math.random() * 0.005 + 0.002, // Slower decay for misty feel
+                    r: isRosy ? 187 : 150,
+                    g: isRosy ? 85  : 150,
+                    b: isRosy ? 58  : 150
+                });
+            }
+
+            // Update & Draw Smoke Volumetrics
+            for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                let s = smokeParticles[i];
+                s.x += s.vx;
+                s.y += s.vy;
+                s.size += 0.4; // Expands as it rises
+                s.life -= s.decay;
+
+                if (s.life <= 0) {
+                    smokeParticles.splice(i, 1);
+                } else {
+                    const gradient = pCtx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size);
+                    gradient.addColorStop(0, `rgba(${s.r}, ${s.g}, ${s.b}, ${s.life * 0.3})`); // Soft core
+                    gradient.addColorStop(1, `rgba(${s.r}, ${s.g}, ${s.b}, 0)`); // Fades perfectly at edges
+                    
+                    pCtx.fillStyle = gradient;
+                    pCtx.beginPath();
+                    pCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                    pCtx.fill();
+                }
+            }
+            
+            // Keep the loop running infinitely while shattered for the continuous smoke
+            shatterAnimId = requestAnimationFrame(animateShatter);
+        }
+
+        function restorePortrait(e) {
+            e.stopPropagation(); // Prevent clicking the button from triggering shatter again!
+            
+            const restoreContainer = document.getElementById('portrait-restore-container');
+            const imgEl = document.getElementById('portrait-img');
+            const badgeEl = document.getElementById('portrait-badge');
+            
+            // 1. Hide the Restore Button
+            restoreContainer.classList.remove('opacity-100');
+            restoreContainer.classList.add('opacity-0');
+            setTimeout(() => restoreContainer.classList.add('hidden'), 500);
+            
+            // 2. Clear any lingering shatter state
+            cancelAnimationFrame(shatterAnimId);
+            
+            // 3. Trigger the cinematic CSS magical fog restore on the Image
+            imgEl.classList.add('magical-restore');
+            imgEl.style.opacity = '1';
+            
+            // Re-show the badge slightly delayed for effect
+            setTimeout(() => {
+                if (badgeEl) badgeEl.style.opacity = '';
+            }, 1500);
+            
+            // Clean up CSS classes once done
+            setTimeout(() => {
+                imgEl.classList.remove('magical-restore');
+                portraitShattered = false; // Allow shattering again
+            }, 2500);
+
+            // 4. Trigger Canvas reverse-gravity magical orbs!
+            portraitParticles = [];
+            const computedStyle = getComputedStyle(document.documentElement);
+            const rosyRGB = computedStyle.getPropertyValue('--color-rosy').trim().replace(/ /g, ',');
+            const colors = ['#ffffff', `rgba(${rosyRGB}, 1)`, `rgba(${rosyRGB}, 0.6)`];
+            
+            for(let i = 0; i < 200; i++) {
+                portraitParticles.push({
+                    x: Math.random() * pCanvas.width,
+                    y: pCanvas.height + Math.random() * 150, // Spawn below the container
+                    vx: (Math.random() - 0.5) * 3, // Slight horizontal drift
+                    vy: -(Math.random() * 6 + 2),  // Move upwards
+                    size: Math.random() * 5 + 1,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 1.0, 
+                    decay: Math.random() * 0.015 + 0.005 // Gradually fade out
+                });
+            }
+            
+            animateRestoreMagic();
+        }
+        
+        function animateRestoreMagic() {
+            // Keep running as long as it's technically still the "shattered" phase before reset
+            if (!portraitShattered) return; 
+            
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            pCtx.globalCompositeOperation = 'screen'; // Creates intense magical glowing overlap
+            
+            let active = 0;
+            portraitParticles.forEach(p => {
+                if (p.life > 0) {
+                    active++;
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= p.decay;
+                    
+                    pCtx.globalAlpha = Math.max(0, p.life);
+                    pCtx.fillStyle = p.color;
+                    pCtx.beginPath();
+                    pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    pCtx.fill();
+                }
+            });
+            
+            if (active > 0) {
+                requestAnimationFrame(animateRestoreMagic);
+            } else {
+                pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+                pCtx.globalAlpha = 1.0;
+                pCtx.globalCompositeOperation = 'source-over'; // Reset blend mode
+            }
+        }
+
+    </script>
+</body>
+</html>
